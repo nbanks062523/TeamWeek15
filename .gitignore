@@ -1,0 +1,5 @@
+dsa-airflow/logs
+dsa-airflow/plugins
+dsa-airflow/.env
+dsa-airflow/data
+venv
