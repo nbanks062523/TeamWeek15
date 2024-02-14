@@ -1,0 +1,8 @@
+# google cloud config
+project: team-week-10
+dataset: Obesity
+
+# data files
+obesity_data: obesity_ratings.csv
+subway_data: subway_stores.csv
+chipotle_data: chipotle_stores.csv
