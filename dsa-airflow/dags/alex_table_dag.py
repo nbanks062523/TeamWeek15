@@ -2,9 +2,9 @@
 ## Overview
 
 This DAG will:
-- Create BigQuery tables for: obesity_rating, chipotle_locations, subway_locations
+- Create BigQuery tables for: obesity_rating, chipotle_stores, subway_stores
 - Tables are dropped if they already exist
-- Tables are loaded form CSV file in /data
+- Tables are loaded from CSV file in /data
 
 ## Setup
 
@@ -30,6 +30,7 @@ def check_data_files():
     """
     logger.info("checking data files")
     for filepath in DATA_FILES.values():
+        print(filepath)
         if not os.path.exists(filepath):
             msg = f"Could not find source data file: {filepath}"
             logger.warn(msg)
@@ -57,7 +58,7 @@ def check_bigquery_client():
 # -----------------------------------------
 
 with DAG(
-    dag_id='dsa_load_tables',
+    dag_id='obesity_load_tables',
     schedule_interval='@once',
     start_date=datetime.utcnow(),
     catchup=False,
@@ -92,7 +93,7 @@ with DAG(
     # create an empty operator before branching out to create tables
     t1 = EmptyOperator(task_id='create_tables')
 
-    table_names = ('airports', 'airlines', 'routes', 'aircraft')
+    table_names = ('obesity_rating', 'subway_stores', 'chipotle_stores')
 
     # create a separate task for creating each table
     create_tasks = []

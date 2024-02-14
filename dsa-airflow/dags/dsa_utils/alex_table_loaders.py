@@ -3,7 +3,7 @@ from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 
 # local module imports
-from dsa_utils.utils import logger, config, DATA_DIR
+from dsa_utils.alex_utils import logger, config, DATA_DIR
 
 
 # setup the bigquery client
@@ -33,19 +33,18 @@ def get_client() -> bigquery.Client:
 
 # global variable to hold data files
 DATA_FILES = {
-    'airports': os.path.join(DATA_DIR, config['airport_data']),
-    'airlines': os.path.join(DATA_DIR, config['airline_data']),
-    'routes': os.path.join(DATA_DIR, config['route_data']),
-    'aircraft': os.path.join(DATA_DIR, config['aircraft_data']),
+    'obesity_rating': os.path.join(DATA_DIR, config['obesity_data']),
+    'subway_stores': os.path.join(DATA_DIR, config['subway_data']),
+    'chipotle_stores': os.path.join(DATA_DIR, config['chipotle_data']),
 }
 
 
 def load_table(table_name: str):
     """
-    Load airports CSV file to BigQuery using 
+    Load CSV files to BigQuery
 
     Args:
-        table_name (str): must be one of the following: airports, airlines, routes, aircraft
+        table_name (str): must be one of the following: obesity_rating, subway_stores, chipotle_stores
     """
     # make sure table_name is one of our data files
     assert table_name in DATA_FILES, f"Unknown table name: {table_name}"
@@ -55,13 +54,13 @@ def load_table(table_name: str):
     # check to see if data file exists
     assert os.path.exists(data_file), f"Missing data file: {data_file}"
     # insert data into bigquery
-    table_id = f"{PROJECT_NAME}.{DATASET_NAME}.airports"
+    table_id = f"{PROJECT_NAME}.{DATASET_NAME}.{table_name}"
     # bigquery job config to load from a csv file
     job_config = bigquery.LoadJobConfig(
         source_format=bigquery.SourceFormat.CSV,
         skip_leading_rows=1,
         autodetect=True,
-        create_disposition='CREATE_NEVER',
+        create_disposition='CREATE_IF_NEEDED',
         write_disposition='WRITE_TRUNCATE',
         max_bad_records=100,
         ignore_unknown_values=True,
