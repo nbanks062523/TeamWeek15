@@ -3,6 +3,6 @@ project: team-week-10
 dataset: Obesity
 
 # data files
-obesity_data: obesity_rating_cleaned.csv
+obesity_data: obesity_rating_final.csv
 subway_data: subway_stores_cleaned.csv
 chipotle_data: chipotle_stores_cleaned.csv
