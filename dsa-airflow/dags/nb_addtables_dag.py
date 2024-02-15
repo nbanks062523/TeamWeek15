@@ -1,79 +1,109 @@
 import os
 from datetime import datetime
-import pandas as pd
-import yaml
-
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.decorators import dag, task
 from airflow.sensors.filesystem import FileSensor
 from airflow.hooks.filesystem import FSHook
+from airflow.operators.empty import EmptyOperator
 
+# local imports
+from dsa_utils.nb_utils import logger, config
+from dsa_utils.nb_table_definitions import create_table, get_client
+from dsa_utils.nb_table_loaders import load_table, DATA_FILES
 
-# global variable for airports file name
-VOTES_FILE = 'votes.csv'
+# Checklist tasks
 
+# This task checks to make sure that the data files exist
+def check_data_files():
+    logger.info("checking data files")
+    for filepath in DATA_FILES.values():
+        print(filepath)
+        if not os.path.exists(filepath):
+            msg = f"Could not find source data file: {filepath}"
+            logger.warn(msg)
+            logger.warn("This is most likely because you haven't mounted the /data dir correctly in docker-compose.yaml. You must restart docker-compose after doing so.")
+            raise FileNotFoundError(msg)
 
-@task
-def read_file():
-                
- # get the data_fs filesystem root path
-    data_fs = FSHook(conn_id='data_fs')     # get airflow connection for data_fs
-    data_dir = data_fs.get_path()           # get its root path
-    print(f"data_fs root path: {data_dir}")
-
-    # create the full path to the votes file
-    file_path = os.path.join(data_dir, VOTES_FILE)
-    print(f"reading file: {file_path}")
+# This task checks to ensure a Big Query client connection can be established
+def check_bigquery_client():
+    # check if $GOOGLE_APPLICATION_CREDENTIALS is set
+    google_app_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if (google_app_creds is None) or (not os.path.exists(google_app_creds)):
+        logger.warn("GOOGLE_APPLICATION_CREDENTIALS is not set properly!")
+        logger.warn("You most likely have not edited the docker-compose.yaml file correctly. You must restart docker-compose after doing so.")
     
-    valid_choices=[]
-    # read csv
-    df = pd.read_csv(file_path, header=1)
-        
-    for i in df['votes']:
-        if i in flavors_choices:
-            valid_choices.append(i)
-    return valid_choices
+    # Get client from dsa_utils.table_definitions module
+    logger.info("checking bigquery client")
+    client = get_client()
+    location = client.location
+    logger.info(f"bigquery client is good. bigquery location: {location}")
 
-# Create a task that takes the list from the previous task and prints the item that appears the most
-@task
-def tally_votes(valid_choices):
-    # count how many times each flavor is in the list
-    flavor_counts = Counter(valid_choices)
-    
-    #find the favorite flavor
-    fav_flavor=flavor_counts.most_common(1)
-    
-    # print the item that appears the most
-    print(f"fan favorite: {fav_flavor}")
-
-    
-@dag(
-    schedule_interval="@once",
+# Create DAG
+with DAG(
+    dag_id='load_food_data',
+    schedule_interval='@once',
     start_date=datetime.utcnow(),
     catchup=False,
     default_view='graph',
     is_paused_upon_creation=True,
-    tags=['votes', 'cake flavors'],
-)
-def file_sensor_dag():
-    
-    # define the file sensor...
-    # wait for the votes file in the "data_fs" filesystem connection
-    wait_for_file = FileSensor(
-        task_id='wait_for_file',
-        poke_interval=15,                   # check every 15 seconds
-        timeout=(10 * 60),                  # timeout after 10 minutes
-        mode='poke',                        # mode: poke, reschedule
-        filepath = VOTES_FILE,        # file path to check (relative to fs_conn)
-        fs_conn_id='data_fs',               # file system connection (root path)
-    )
+    tags=['dsa', 'data-loaders'],
+    default_args={
+        'depends_on_past': False,
+        'email': ['airflow@example.com'],
+        'email_on_failure': False,
+        'email_on_retry': False,
+        'retries': 0,
+    }
+) as dag:
+    # dag's doc in markdown
+    # setting it to this module's docstring defined at the very top of this file
+    dag.doc_md = __doc__
 
-    # read the file
-    read_file_task = read_file()
-    tally_votes_task = tally_votes(read_file_task)
+    print(__file__)
     
-    # orchestrate tasks
-    wait_for_file >> read_file_task >> tally_votes_task
-# create the dag
-dag = file_sensor_dag()
+# Execute tasks
+
+# Checklist tasks
+check_1 = PythonOperator(
+        task_id='check_data_files',
+        python_callable=check_data_files,
+        doc_md=check_data_files.__doc__             # adding function docstring as task doc
+    )
+check_2 = PythonOperator(
+        task_id='check_bigquery_client',
+        python_callable=check_bigquery_client,
+        doc_md=check_bigquery_client.__doc__        # adding function docstring as task doc
+    )
+# create an empty operator for branching the table creation tasks
+    t1 = EmptyOperator(task_id='create_tables')
+    table_names = ('food_inflation_BM', 'grocery_prices_BM','snap_poverty_pop','snap_population','snap_program_part')
+
+# create a separate task for creating each table
+    create_tasks = []
+    for t in table_names:
+        task = PythonOperator(
+            task_id=f"create_{t}_table",
+            python_callable=create_table,               # call the dsa_utils.table_definitions.create_table
+            op_kwargs={'table_name': t},       # arguments to create_table() function
+            doc_md=create_table.__doc__                 # take function docstring
+        )
+        create_tasks.append(task)
+
+    # create another empty operator for branching table loading tasks
+    t2 = EmptyOperator(task_id='load_files')
+
+    # create a separate task for loading each table
+    load_tasks = []
+    for t in table_names:
+        task = PythonOperator(
+            task_id=f"load_{t}_table",
+            python_callable=load_table,               # call the dsa_utils.table_loaders.load_table
+            op_kwargs={'table_name': t},       # arguments to load_table() function
+            doc_md=load_table.__doc__                 # take function docstring
+        )
+        load_tasks.append(task)
+
+    # create empty task to branch back in
+    done = EmptyOperator(task_id='done')
+
+    check_1 >> check_2 >> t1 >> create_tasks >> t2 >> load_tasks >> done
