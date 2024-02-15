@@ -4,7 +4,6 @@ import pandas as pd
 import yaml
 
 from airflow import DAG
-from collections import Counter
 from airflow.operators.python import PythonOperator
 from airflow.decorators import dag, task
 from airflow.sensors.filesystem import FileSensor
