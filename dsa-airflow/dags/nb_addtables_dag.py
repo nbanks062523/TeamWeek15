@@ -11,7 +11,7 @@ from dsa_utils.nb_utils import logger, config
 from dsa_utils.nb_table_definitions import create_table, get_client
 from dsa_utils.nb_table_loaders import load_table, DATA_FILES
 
-# Checklist tasks
+######################### Checklist tasks ######################
 
 # This task checks to make sure that the data files exist
 def check_data_files():
