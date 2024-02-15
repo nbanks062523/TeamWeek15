@@ -38,7 +38,7 @@ def check_bigquery_client():
     location = client.location
     logger.info(f"bigquery client is good. bigquery location: {location}")
 
-# Create DAG
+################################ Create DAG #########################################
 with DAG(
     dag_id='load_food_data',
     schedule_interval='@once',
