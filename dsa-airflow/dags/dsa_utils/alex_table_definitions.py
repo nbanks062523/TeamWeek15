@@ -37,8 +37,12 @@ def get_client() -> bigquery.Client:
 OBESITY_TABLE_SCHEMA = [
     bigquery.SchemaField('state', 'STRING', mode='REQUIRED'),
     bigquery.SchemaField('state_abbrev', 'STRING', mode='NULLABLE'),
-    bigquery.SchemaField('obesity_%', 'FLOAT', mode='NULLABLE'),
+    bigquery.SchemaField('obesity_percentage', 'FLOAT', mode='NULLABLE'),
     bigquery.SchemaField('area_sq_mi', 'FLOAT', mode='NULLABLE'),
+    bigquery.SchemaField('subway_count_per_state', 'FLOAT', mode='NULLABLE'),
+    bigquery.SchemaField('chipotle_count_per_state', 'FLOAT', mode='NULLABLE'),
+    bigquery.SchemaField('sq_mi_per_subway', 'FLOAT', mode='NULLABLE'),
+    bigquery.SchemaField('sq_mi_per_chipotle', 'FLOAT', mode='NULLABLE'),
 ]
 
 # subway store table schema

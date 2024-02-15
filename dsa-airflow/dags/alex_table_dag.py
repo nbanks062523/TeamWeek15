@@ -114,9 +114,9 @@ with DAG(
     for table_name in table_names:
         task = PythonOperator(
             task_id=f"load_{table_name}_table",
-            python_callable=load_table,               # call the dsa_utils.table_loaders.load_table
-            op_kwargs={'table_name': table_name},       # arguments to load_table() function
-            doc_md=load_table.__doc__                 # take function docstring
+            python_callable=load_table,               
+            op_kwargs={'table_name': table_name},       
+            doc_md=load_table.__doc__                 
         )
         load_tasks.append(task)
 
