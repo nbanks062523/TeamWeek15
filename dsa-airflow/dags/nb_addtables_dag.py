@@ -14,20 +14,10 @@ from airflow.hooks.filesystem import FSHook
 # global variable for airports file name
 VOTES_FILE = 'votes.csv'
 
-# list of flavors
-flavors_choices = ["lemon","vanilla","chocolate","pistachio","strawberry","confetti","caramel","pumpkin","rose"]
 
-# This task will read each row in the votes csv file and checks whether the value is in a given 
-# list of flavor choices. If it is in the list then it appends it to a new list 
 @task
 def read_file():
-    """
-    read cake flavor votes file from a CSV
-
-    This function uses an Airflow FileSystem Connection called "data_fs" as the root folder
-    to look for the votes file. Make sure this FileSystem connection exists
-    """
-            
+                
  # get the data_fs filesystem root path
     data_fs = FSHook(conn_id='data_fs')     # get airflow connection for data_fs
     data_dir = data_fs.get_path()           # get its root path
