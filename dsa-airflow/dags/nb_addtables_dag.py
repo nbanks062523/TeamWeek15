@@ -58,12 +58,11 @@ with DAG(
     # dag's doc in markdown
     # setting it to this module's docstring defined at the very top of this file
     dag.doc_md = __doc__
-
     print(__file__)
     
-# Execute tasks
+########################################### Execute tasks ###########################################################
 
-# Checklist tasks
+# Define Checklist tasks
 check_1 = PythonOperator(
         task_id='check_data_files',
         python_callable=check_data_files,
